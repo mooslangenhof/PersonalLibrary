@@ -43,6 +43,20 @@ Your saved books live in each browser's local storage, so the books you add on t
 
 When you save a new book, a 3D book is generated with your title, author and colours on the cover and spine, and it slides into the next free spot on the shelf. The eye-level shelf fills first; when every shelf is full, extra books are stacked flat on top of the bookcase.
 
+### "Fill in for me": automatic core teachings
+
+Type a title (and the author, if you know it) in the **+** panel and press **Fill in for me**. The Core Teachings box fills itself, and the author is filled in if you left it empty. Your reflections are always left for you to write. Check the result and edit it before saving.
+
+- **Without any setup** it looks the book up in the free Google Books and Open Library databases and uses the published description of the book.
+- **With the AI helper on** it asks Claude to write 4–6 core teachings, like the three starting books. To turn it on:
+  1. Sign in at [console.anthropic.com](https://console.anthropic.com) and add a little credit under **Billing**. Each lookup uses only a very small amount of credit.
+  2. Go to **API Keys**, create a key and copy it (it starts with `sk-ant-`).
+  3. In the app, open the **+** panel, scroll to **AI helper**, paste the key and press **Save key**.
+
+  The key is stored only in your browser's local storage, never in this repository's code, so it is not published on GitHub and visitors to your site can't use it. You'll need to paste it again on each new browser or device. **Remove key from this browser** turns the AI helper off again.
+
+  If Claude doesn't know a book or can't be reached, the button falls back to the free description and tells you so.
+
 ### Where your books are saved
 
 Books are saved in your browser's **localStorage**, so they are still there the next time you open the app in the same browser. Clearing site data, or opening the app in a different browser or computer, starts from the three default books.
@@ -68,6 +82,7 @@ src/
 ├── data/
 │   ├── defaultBooks.js          The three starting books — edit to change the starting set
 │   ├── storage.js               localStorage load/save, export/import backup
+│   ├── bookLookup.js            "Fill in for me": Claude, Google Books, Open Library
 │   └── themes.js                Cover colour presets and colour helpers
 ├── utils/
 │   ├── layout.js                Room & bookcase measurements, shelf slot calculation

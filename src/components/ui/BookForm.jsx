@@ -3,6 +3,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { useLibrary } from '../../state/useLibrary'
 import { DEFAULT_THEME, THEME_PRESETS } from '../../data/themes'
 import { exportBooks, importBooksFromFile } from '../../data/storage'
+import { getApiKey, lookupBook, saveApiKey } from '../../data/bookLookup'
 import { letteringColor } from '../../utils/textures'
 
 const EMPTY = {
@@ -26,6 +27,12 @@ export default function BookForm() {
   const [errors, setErrors] = useState({})
   const [confirmDelete, setConfirmDelete] = useState(false)
   const [confirmReset, setConfirmReset] = useState(false)
+  // "Fill in for me": { status: 'idle' | 'loading' | 'done' | 'error', message, source }
+  const [lookup, setLookup] = useState({ status: 'idle' })
+  const [confirmReplace, setConfirmReplace] = useState(false)
+  const [hasKey, setHasKey] = useState(() => Boolean(getApiKey()))
+  const [keyDraft, setKeyDraft] = useState('')
+  const [keyError, setKeyError] = useState('')
   const titleInput = useRef()
   const fileInput = useRef()
 
@@ -45,6 +52,8 @@ export default function BookForm() {
     setErrors({})
     setConfirmDelete(false)
     setConfirmReset(false)
+    setLookup({ status: 'idle' })
+    setConfirmReplace(false)
     setTimeout(() => titleInput.current?.focus(), 350)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, editingId])
@@ -76,6 +85,54 @@ export default function BookForm() {
     if (Object.keys(next).length) return
     if (editing) updateBook(editing.id, form)
     else addBook(form)
+  }
+
+  const fillIn = async () => {
+    if (!form.title.trim()) {
+      setErrors((er) => ({ ...er, title: 'Type the title first, then press Fill in for me.' }))
+      titleInput.current?.focus()
+      return
+    }
+    if (form.teachings.trim() && !confirmReplace) {
+      setConfirmReplace(true)
+      return
+    }
+    setConfirmReplace(false)
+    setLookup({ status: 'loading' })
+    try {
+      const result = await lookupBook({ title: form.title, author: form.author })
+      setForm((f) => ({
+        ...f,
+        teachings: result.teachings,
+        author: f.author.trim() || result.author || f.author,
+      }))
+      if (result.author) setErrors((er) => ({ ...er, author: undefined }))
+      setLookup({ status: 'done', source: result.source, message: result.note })
+    } catch (err) {
+      setLookup({ status: 'error', message: err.message || 'Something went wrong. Try again in a moment.' })
+    }
+  }
+
+  const saveKey = (e) => {
+    e.preventDefault()
+    const key = keyDraft.trim()
+    if (!key.startsWith('sk-ant-')) {
+      setKeyError('That doesn’t look like an Anthropic API key. It should start with “sk-ant-”.')
+      return
+    }
+    if (!saveApiKey(key)) {
+      setKeyError('This browser won’t let the app save the key (private window or blocked storage).')
+      return
+    }
+    setHasKey(true)
+    setKeyDraft('')
+    setKeyError('')
+    showToast('AI helper is on. “Fill in for me” now writes core teachings with Claude.')
+  }
+  const removeKey = () => {
+    saveApiKey('')
+    setHasKey(false)
+    showToast('AI helper is off. “Fill in for me” uses the free book databases.')
   }
 
   const onImport = async (e) => {
@@ -166,11 +223,49 @@ export default function BookForm() {
             </div>
           </fieldset>
 
-          <label className="field">
-            <span>Core teachings</span>
-            <small>One idea per line.</small>
-            <textarea value={form.teachings} onChange={set('teachings')} rows={6} placeholder={'Love is an art that has to be learned and practised.\nCare, responsibility, respect and knowledge…'} />
-          </label>
+          <div className="field">
+            <div className="field-head">
+              <label htmlFor="book-teachings">Core teachings</label>
+              <button
+                type="button"
+                className={`fill-btn ${lookup.status === 'loading' ? 'is-loading' : ''}`}
+                onClick={fillIn}
+                disabled={lookup.status === 'loading'}
+              >
+                <span aria-hidden="true">✦</span>
+                {lookup.status === 'loading' ? 'Looking it up…' : confirmReplace ? 'Replace what’s written?' : 'Fill in for me'}
+              </button>
+            </div>
+            <small>
+              One idea per line.{' '}
+              {hasKey ? 'Fill in for me asks Claude for the key lessons.' : 'Fill in for me finds the book’s description.'}
+            </small>
+            <textarea
+              id="book-teachings"
+              value={form.teachings}
+              onChange={(e) => {
+                set('teachings')(e)
+                setConfirmReplace(false)
+              }}
+              rows={6}
+              placeholder={'Love is an art that has to be learned and practised.\nCare, responsibility, respect and knowledge…'}
+              aria-busy={lookup.status === 'loading'}
+            />
+            {lookup.status === 'done' && (
+              <p className="lookup-note" role="status">
+                {lookup.message && <>{lookup.message} </>}
+                {lookup.source === 'claude'
+                  ? 'Written by Claude. Read it through and change anything that doesn’t match your own reading.'
+                  : `From the book’s published description (${lookup.source === 'google' ? 'Google Books' : 'Open Library'}). Edit it into your own key points.`}
+                {lookup.source !== 'claude' && !hasKey && ' For proper key lessons, turn on the AI helper below.'}
+              </p>
+            )}
+            {lookup.status === 'error' && (
+              <p className="lookup-note lookup-error" role="alert">
+                {lookup.message}
+              </p>
+            )}
+          </div>
 
           <label className="field">
             <span>My personal reflections</span>
@@ -223,6 +318,61 @@ export default function BookForm() {
               </div>
             </div>
           )}
+
+          <details className="ai-settings">
+            <summary>
+              AI helper <span className={`ai-status ${hasKey ? 'is-on' : ''}`}>{hasKey ? 'On' : 'Off'}</span>
+            </summary>
+            {hasKey ? (
+              <div className="ai-body">
+                <p>
+                  Fill in for me uses Claude with your Anthropic API key. The key is saved only in this browser, never in
+                  the code on GitHub.
+                </p>
+                <button type="button" className="link-btn link-danger" onClick={removeKey}>
+                  Remove key from this browser
+                </button>
+              </div>
+            ) : (
+              <div className="ai-body">
+                <p>
+                  With an Anthropic API key, Fill in for me writes the core teachings for you, like the three starting
+                  books. Without one it uses the free book description.
+                </p>
+                <ol>
+                  <li>
+                    Sign in at{' '}
+                    <a href="https://console.anthropic.com" target="_blank" rel="noreferrer">
+                      console.anthropic.com
+                    </a>{' '}
+                    and add a little credit under Billing.
+                  </li>
+                  <li>Open API Keys, create a key and copy it.</li>
+                  <li>Paste it here. It stays in this browser only.</li>
+                </ol>
+                <div className="key-row">
+                  <input
+                    id="api-key"
+                    type="password"
+                    value={keyDraft}
+                    onChange={(e) => {
+                      setKeyDraft(e.target.value)
+                      setKeyError('')
+                    }}
+                    onKeyDown={(e) => e.key === 'Enter' && saveKey(e)}
+                    placeholder="sk-ant-…"
+                    aria-label="Anthropic API key"
+                    autoComplete="off"
+                    spellCheck={false}
+                  />
+                  <button type="button" className="btn btn-primary btn-small" onClick={saveKey} disabled={!keyDraft.trim()}>
+                    Save key
+                  </button>
+                </div>
+                {keyError && <em className="field-error">{keyError}</em>}
+              </div>
+            )}
+          </details>
         </form>
       </aside>
     </div>

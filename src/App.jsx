@@ -8,6 +8,7 @@ import BookForm from './components/ui/BookForm'
 import UnlockDialog from './components/ui/UnlockDialog'
 import JournalOverlay from './components/ui/JournalOverlay'
 import Toast from './components/ui/Toast'
+import SoundControl from './components/ui/SoundControl'
 import LoadingScreen from './components/ui/LoadingScreen'
 import { useLibrary } from './state/useLibrary'
 
@@ -74,6 +75,7 @@ export default function App() {
       <HoverLabel />
       <AddBookButton />
       <JournalOverlay />
+      <SoundControl />
       <BookForm />
       <UnlockDialog />
       <Toast />

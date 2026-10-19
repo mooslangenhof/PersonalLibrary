@@ -40,8 +40,13 @@ Your saved books live in each browser's local storage, so the books you add on t
 | Close a book | **Return to Shelf**, click outside the pages, or press `Esc` |
 | Add a book | The **+** button in the bottom-right corner |
 | Edit or remove a book | Open it, then **Edit** |
+| Room sounds | The speaker button in the bottom-left corner; the sliders button next to it turns the fireplace, rain and piano on or off and sets the volume |
 
 When you save a new book, a 3D book is generated with your title, author and colours on the cover and spine, and it slides into the next free spot on the shelf. The eye-level shelf fills first; when every shelf is full, extra books are stacked flat on top of the bookcase.
+
+### Room sounds
+
+The speaker button plays a crackling fire, rain on the window and a slow, soft piano melody. Everything is generated live in the browser with the Web Audio API (`src/audio/ambience.js`), so there are no audio files and no licensing to worry about, and the melody never repeats exactly. Browsers only allow sound after you click, so the room always starts quiet. Your choice of sounds and volume is remembered. On an iPhone, the silent switch also mutes it.
 
 ### "Fill in for me": automatic core teachings
 
@@ -98,10 +103,12 @@ src/
 │   ├── Lighting.jsx             Ambient/fill lights
 │   ├── Effects.jsx              Bloom, tone mapping, vignette
 │   └── materials.js             Shared materials
+├── audio/ambience.js            Generated room sounds: fire, rain, piano
 ├── components/ui/               HTML overlays
 │   ├── JournalOverlay.jsx       The open-book journal pages
 │   ├── BookForm.jsx             Add / edit panel ("admin portal") with backup tools
 │   ├── AddBookButton.jsx        The + button
+│   ├── SoundControl.jsx         Speaker button and sound mixer
 │   ├── UnlockDialog.jsx         Passcode prompt (only if a passcode is set)
 │   └── Header.jsx, HoverLabel.jsx, Toast.jsx, LoadingScreen.jsx
 └── styles/global.css            All UI styling

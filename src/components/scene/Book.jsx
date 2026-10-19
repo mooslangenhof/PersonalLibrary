@@ -24,6 +24,9 @@ const OPEN_ANGLE = -Math.PI * 0.965
 const PULL_OUT = 0.55
 const READING_ROT = new THREE.Euler(0.06, -Math.PI / 2, 0)
 
+const OPENING_STAGES = new Set(['pull', 'travel', 'reading'])
+const CLOSING_STAGES = new Set(['closing', 'returning', 'putting-back'])
+
 const v3 = new THREE.Vector3()
 
 export default function Book({ book, slot }) {
@@ -32,10 +35,8 @@ export default function Book({ book, slot }) {
   const glowMats = useRef([])
   const anim = useRef(null)
 
-  const activeId = useLibrary((s) => s.activeId)
   const phase = useLibrary((s) => s.phase)
   const hoveredId = useLibrary((s) => s.hoveredId)
-  const isActive = activeId === book.id
   const isHovered = hoveredId === book.id
 
   const size = useMemo(() => bookSize(book), [book])
@@ -106,17 +107,23 @@ export default function Book({ book, slot }) {
     }
   }
 
-  // React to the reading flow.
-  useEffect(() => {
-    const a = anim.current
-    if (isActive && phase === 'opening' && (a.stage === 'shelf' || a.stage === 'arriving')) a.stage = 'pull'
-    if (isActive && phase === 'closing') a.stage = 'closing'
-  }, [isActive, phase])
-
   useFrame((state, delta) => {
     const g = group.current
     if (!g) return
     const a = anim.current
+
+    // Follow the reading flow. Checked every frame so a book that is clicked
+    // in any stage (even while still sliding onto the shelf) always responds.
+    const flow = useLibrary.getState()
+    if (flow.activeId === book.id) {
+      if (flow.phase === 'opening' && !OPENING_STAGES.has(a.stage)) {
+        a.stage = 'pull'
+        flow.ackOpening(book.id)
+        if (flow.justAddedId === book.id) flow.clearJustAdded()
+      } else if (flow.phase === 'closing' && !CLOSING_STAGES.has(a.stage)) {
+        a.stage = 'closing'
+      }
+    }
     const dt = Math.min(delta, 0.1)
     const [sx, sy, sz] = slot.position
     const outside = [sx, sy, sz + PULL_OUT]

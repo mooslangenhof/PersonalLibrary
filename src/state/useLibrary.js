@@ -31,6 +31,7 @@ export const useLibrary = create((set, get) => ({
   // Reading flow: idle -> opening -> open -> closing -> idle
   activeId: null,
   phase: 'idle',
+  openingAck: null, // id of the book that has started moving off the shelf
   hoveredId: null,
   justAddedId: null,
 
@@ -46,8 +47,9 @@ export const useLibrary = create((set, get) => ({
   openBook: (id) => {
     const { phase, panel } = get()
     if (phase !== 'idle' || panel) return
-    set({ activeId: id, phase: 'opening', hoveredId: null })
+    set({ activeId: id, phase: 'opening', hoveredId: null, openingAck: null })
   },
+  ackOpening: (id) => set({ openingAck: id }),
   markOpen: () => set({ phase: 'open' }),
   closeBook: () => {
     if (get().phase === 'open' || get().phase === 'opening') set({ phase: 'closing' })

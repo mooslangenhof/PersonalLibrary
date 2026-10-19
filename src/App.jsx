@@ -34,6 +34,17 @@ export default function App() {
   const phase = useLibrary((s) => s.phase)
   const closeBook = useLibrary((s) => s.closeBook)
 
+  // Safety net: if the clicked book never starts moving (for example because
+  // it was removed), bring the camera back instead of leaving it stuck.
+  useEffect(() => {
+    if (phase !== 'opening') return
+    const t = setTimeout(() => {
+      const s = useLibrary.getState()
+      if (s.phase === 'opening' && s.openingAck !== s.activeId) s.finishClose()
+    }, 4000)
+    return () => clearTimeout(t)
+  }, [phase])
+
   // Escape closes an open book.
   useEffect(() => {
     const onKey = (e) => {

@@ -4,6 +4,8 @@ A personal reading journal shaped like a warm, wood-panelled library at night. Y
 
 Built with [React](https://react.dev), [Three.js](https://threejs.org) via [React Three Fiber](https://r3f.docs.pmnd.rs) and [drei](https://drei.docs.pmnd.rs), and [Vite](https://vite.dev). All textures (wood, brick, wallpaper, rug, book covers) are drawn in code, so there are no image assets to manage.
 
+**Live site:** https://mooslangenhof.github.io/PersonalLibrary/
+
 ## Run it locally
 
 You need **Node.js 20.19+ or 22.12+** ([download](https://nodejs.org)).
@@ -21,6 +23,12 @@ To make a production build (a static site you can host anywhere, e.g. GitHub Pag
 npm run build     # output goes to dist/
 npm run preview   # serve the built site locally to check it
 ```
+
+## Publishing to GitHub Pages
+
+Every push to `main` rebuilds the site and publishes it to GitHub Pages (see `.github/workflows/deploy.yml`). One-time setup: in the repository, go to **Settings → Pages** and set **Source** to **GitHub Actions**. You can follow each deploy in the **Actions** tab.
+
+Your saved books live in each browser's local storage, so the books you add on the live site stay on that device. Use **Export backup** / **Import backup** to move them between devices.
 
 ## Using the library
 
